@@ -1,0 +1,22 @@
+# Docker container for apache
+# To build: sudo docker build --tag=andrew/apache /opt/docker/andrew/apache/build
+# Note that dockerfile must be within the build context and literally named Dockerfile
+# To run a container: sudo docker run -d --name webserver -h webserver -v /opt/docker/andrew/apache/volumes/apache_config/:/etc/apache2 -v /opt/docker/andrew/apache/volumes/data:/var/www -p 192.168.11.10:80:80 andrew/apache  
+# To create a terminal to which to connect removed -d and replace with -it
+# To connect to a running container: sudo docker attach (container)
+
+#To add: Add --restart=always at runtime once docker version available from the apt-get repo is at 1.2 
+
+FROM ubuntu
+
+#Update Ubuntu and install packages
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    php5
+
+#Set local time within the container
+RUN echo "America/New_York" > /etc/timezone
+RUN dpkg-reconfigure -f noninteractive tzdata
+
+#Command to execute when container is run
+CMD /usr/sbin/apache2ctl -D FOREGROUND 
