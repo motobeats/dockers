@@ -1,0 +1,25 @@
+# Docker container for samba
+# To build: sudo docker build --tag=andrew/samba /opt/docker/andrew/samba/build
+# Note that dockerfile must be within the build context and literally named Dockerfile
+# To run a container: sudo docker run -d --name samba -h files -v /opt/docker/andrew/samba/volumes/samba_config/smb.conf:/etc/samba/smb.conf -v /opt/docker/andrew/samba/volumes/data:/srv/ -p 192.168.11.10:445:445 andrew/samba  
+# To create a terminal to which to connect removed -d (detached) and replace with -it
+# To connect to a running container: sudo docker attach (container)
+
+#To add: Add --restart=always at runtime once docker version available from the apt-get repo is at 1.2 
+
+FROM ubuntu
+
+#Update Ubuntu and install packages
+RUN apt-get update && apt-get install -y \
+    samba
+
+#Set local time within the container
+RUN echo "America/New_York" > /etc/timezone
+RUN dpkg-reconfigure -f noninteractive tzdata
+
+#Command to execute when container is run
+CMD ["/usr/sbin/smbd", "-FS"]
+
+#After container is running, add users with the following commands. Updates to smb.conf as required.
+#sudo docker exec -it <container id> useradd <user> --shell /bin/false
+#sudo docker exec -it <container id> smbpasswd -a <user>
