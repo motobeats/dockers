@@ -1,25 +1,29 @@
-# Docker container for samba
-# To build: sudo docker build --tag=andrew/samba /opt/docker/andrew/samba/build
+# Docker container for smbd to host a share for scanned files
+# For Ubuntu 18.04
+# smbd configuration is stored in the container's file system. No external mount for config info
+# To build: sudo docker build --tag=smbd </path/to/Dockerfile> (Folder containing the Dockerfile should also contain any files to be used during the build)
 # Note that dockerfile must be within the build context and literally named Dockerfile
-# To run a container: sudo docker run -d --name samba -h files -v /opt/docker/andrew/samba/volumes/samba_config/smb.conf:/etc/samba/smb.conf -v /opt/docker/andrew/samba/volumes/data:/srv/ -p 192.168.11.10:445:445 andrew/samba  
-# To create a terminal to which to connect removed -d (detached) and replace with -it
-# To connect to a running container: sudo docker attach (container)
-
-#To add: Add --restart=always at runtime once docker version available from the apt-get repo is at 1.2 
+# To run a container: sudo docker run -d --name samba -h scans -v /home/<user>/Docker/smbd/volumes/tmp:/tmp -p 445:445 --restart=unless-stopped smbd  
+# To create a terminal to which to connect remove -d and replace with -it
+# To connect to a running container with a terminal: sudo docker attach <container>
+# To connect to a running container without a terminal: sudo docker exec -it <container> bash
+# Samba needs to be able to write to /tmp to save scans. To allow "nobody" user to write set the permissions to 777 on the Docker hosts OS folder this is being mounted
 
 FROM ubuntu
 
-#Update Ubuntu and install packages
-RUN apt-get update && apt-get install -y \
-    samba
+# Update Ubuntu and install packages
+# Set noninteractive for dpkg otherwise tzdata prompts
+# Explicitly install tzdata for ftpd
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    samba \
+    tzdata
 
-#Set local time within the container
-RUN echo "America/New_York" > /etc/timezone
-RUN dpkg-reconfigure -f noninteractive tzdata
+# Set local time within the container. Updated for 18.04
+RUN ln -fs /usr/share/zoneinfo/US/Eastern /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
 
-#Command to execute when container is run
+# Copy in configuration files
+COPY smb.conf /etc/samba/smb.conf
+
+# Command to execute when container is run
 CMD ["/usr/sbin/smbd", "-FS"]
 
-#After container is running, add users with the following commands. Updates to smb.conf as required.
-#sudo docker exec -it <container id> useradd <user> --shell /bin/false
-#sudo docker exec -it <container id> smbpasswd -a <user>
